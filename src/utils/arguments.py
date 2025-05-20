@@ -4,7 +4,7 @@ import logging
 parser = argparse.ArgumentParser("Directed Graph Neural Network")
 
 ### Dataset Args
-parser.add_argument("--dataset", type=str, help="Name of dataset", default="chameleon")
+parser.add_argument("--dataset", type=str, help="Name of dataset", default="arxiv-year")
 parser.add_argument("--dataset_directory", type=str, help="Directory to save datasets", default="dataset")
 parser.add_argument("--checkpoint_directory", type=str, help="Directory to save checkpoints", default="checkpoint")
 
@@ -20,7 +20,7 @@ parser.add_argument("--num_layers", type=int, help="Number of GNN layers", defau
 parser.add_argument("--dropout", type=float, help="Feature dropout", default=0.0)
 parser.add_argument("--alpha", type=float, help="Direction convex combination params", default=0.5)
 parser.add_argument("--learn_alpha", action="store_true")
-parser.add_argument("--conv_type", type=str, help="DirGNN Model", default="dir-gcn")
+parser.add_argument("--conv_type", type=str, help="DirGNN Model", default="dir-gat")
 parser.add_argument("--normalize", action="store_true")
 parser.add_argument("--jk", type=str, choices=["max", "cat", None], default="max")
 
@@ -32,7 +32,7 @@ parser.add_argument("--patience", type=int, help="Patience for early stopping", 
 parser.add_argument("--num_runs", type=int, help="Max number of runs", default=1)
 
 ### System Args
-parser.add_argument("--use_best_hyperparams", action="store_true")
+parser.add_argument("--use_best_hyperparams", action="store_false")
 parser.add_argument("--gpu_idx", type=int, help="Indexes of gpu to run program on", default=0)
 parser.add_argument("--num_workers", type=int, help="Num of workers for the dataloader", default=0)
 parser.add_argument("--log", type=str, help="Log Level", default="INFO", choices=["DEBUG", "INFO", "WARNING"])

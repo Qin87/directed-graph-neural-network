@@ -1,4 +1,4 @@
-# 74.71 ± 1.42
+# 74.71 ± 1.42  #(GCN_Jump with dir_norm)---Qin
 squirrel:
   lr: 0.01
   hidden_dim: 128
@@ -9,7 +9,7 @@ squirrel:
   alpha: 1
   normalize: True
 
-# 79.71 ± 1.26
+# 79.71 ± 1.26   #(GCN_Jump with dir_norm)---Qin
 chameleon:
   lr: 0.005
   hidden_dim: 128

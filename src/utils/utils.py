@@ -6,6 +6,8 @@ import torch
 
 def use_best_hyperparams(args, dataset_name):
     best_params_file_path = "best_hyperparams.yml"
+    path = os.getcwd()
+    os.chdir('../')
     with open(best_params_file_path, "r") as file:
         hyperparams = yaml.safe_load(file)
 

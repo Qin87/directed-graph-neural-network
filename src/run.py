@@ -13,6 +13,7 @@ from src.datasets.data_loading import get_dataset, get_dataset_split
 from src.datasets.dataset import FullBatchGraphDataset
 from src.model import get_model, LightingFullBatchModelWrapper
 from src.utils.arguments import args
+import time
 
 
 def run(args):
@@ -26,7 +27,8 @@ def run(args):
         self_loops=args.self_loops,
         transpose=args.transpose,
     )
-    data = dataset._data
+    data = getattr(dataset, '_data', dataset.data)
+
     data_loader = DataLoader(FullBatchGraphDataset(data), batch_size=1, collate_fn=lambda batch: batch[0])
 
     val_accs, test_accs = [], []
@@ -85,5 +87,9 @@ def run(args):
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     args = use_best_hyperparams(args, args.dataset) if args.use_best_hyperparams else args
+    print(args)
     run(args)
+    end_time = time.time()
+    print('Used time: ', end_time-start_time)
