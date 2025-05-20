@@ -102,16 +102,16 @@ class DirConv_Mix(torch.nn.Module):
         elif self.conv_type in ['dir-gat', 'dir-sage']:
             edge_index_t = torch.stack([edge_index[1], edge_index[0]], dim=0)
             if self.edge_in_in is None:
-                self.edge_in_out, self.edge_out_in, self.edge_in_in, self.edge_out_out = get_higher_edge_index(edge_index, num_nodes)
+                self.edge_in_out, self.edge_out_in, self.edge_in_in, self.edge_out_out = get_higher_edge_index(edge_index, x.shape[0])
 
-            out1 = aggregate_index(x, self.alpha, self.lin_src_to_dst, edge_index, self.lin_dst_to_src, edge_index_t, self.Intersect_alpha, self.Union_alpha)
+            out1 = aggregate_index(x, self.alpha, self.lin_src_to_dst, edge_index, self.lin_dst_to_src, edge_index_t)
             if not (self.beta == -1 and self.gama == -1):
                 if self.beta != -1:
-                    out2 = aggregate_index(x, self.beta, self.linx[0], self.edge_in_out, self.linx[1], self.edge_out_in, self.Intersect_beta, self.Union_beta)
+                    out2 = aggregate_index(x, self.beta, self.linx[0], self.edge_in_out, self.linx[1], self.edge_out_in)
                 else:
                     out2 = torch.zeros_like(out1)
                 if self.gama != -1:
-                    out3 = aggregate_index(x, self.gama, self.linx[2], self.edge_in_in, self.linx[3], self.edge_out_out, self.Intersect_gama, self.Union_gama)
+                    out3 = aggregate_index(x, self.gama, self.linx[2], self.edge_in_in, self.linx[3], self.edge_out_out)
                 else:
                     out3 = torch.zeros_like(out1)
 

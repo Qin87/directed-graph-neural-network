@@ -20,9 +20,9 @@ chameleon:
   patience: 400
   conv_type: "dir-gcn"
   alpha: 1
+  normalize: True
   beta: 1
   gama: 1
-  normalize: True
 
 # 64.08 ± 0.26
 arxiv-year:
@@ -32,6 +32,8 @@ arxiv-year:
   jk: "cat"
   patience: 200
   conv_type: "dir-gcn"
+  beta: 0.5
+  gama: 0.5
 
 # 73.95 ± 0.05
 snap-patents:
@@ -42,6 +44,9 @@ snap-patents:
   patience: 200
   normalize: True
   conv_type: "dir-gcn"
+  beta: 0.5
+  gama: 0.5
+
 
 # 91.23 ± 0.32
 directed-roman-empire:
@@ -52,3 +57,17 @@ directed-roman-empire:
   dropout: 0.2
   patience: 200
   conv_type: "dir-sage"
+  beta: 0.5
+  gama: 0.5
+
+#hyperparameter unsure
+ogbn-arxiv:
+  lr: 0.005
+  hidden_dim: 256
+  num_layers: 6
+  jk: "cat"
+  patience: 200
+  conv_type: "dir-gcn"
+  beta: 0.5
+  gama: 0.5
+

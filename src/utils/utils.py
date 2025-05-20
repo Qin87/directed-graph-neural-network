@@ -21,7 +21,7 @@ def seed_everything(seed):
 
 def use_best_hyperparams(args, dataset_name):
     best_params_file_path = "best_hyperparams.yml"
-    os.chdir("..")      # Qin
+    # os.chdir("..")      # Qin
     with open(best_params_file_path, "r") as file:
         hyperparams = yaml.safe_load(file)
 
