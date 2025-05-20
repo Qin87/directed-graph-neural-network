@@ -60,7 +60,7 @@ for layer in $layer_values; do    # --IsDirectedData --to_undirected
   logfile="${Didataset}outforlayer${layer}.log"  # Adjust log file name with layer number
     exec > $logfile 2>&1  # Redirect stdout and stderr to log file
   for net in $net_values; do
-    nohup python3 -m src.run  --model=$net  --dataset="$Didataset"  \
+    nohup python3 -m src.run  --model=$net  --dataset="$Didataset" --seed=1  \
       > ${Direct_dataset_filename}_${timestamp}${net}_layer${layer}GPU.log &
     pid=$!
 
