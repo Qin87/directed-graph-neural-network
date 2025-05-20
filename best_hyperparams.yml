@@ -1,4 +1,4 @@
-# 74.71 ± 1.42  #(GCN_Jump with dir_norm)---Qin
+# 74.71 ± 1.42   # ScaleNet: 74.94 +- 2.13
 squirrel:
   lr: 0.01
   hidden_dim: 128
@@ -8,8 +8,10 @@ squirrel:
   conv_type: "dir-gcn"
   alpha: 1
   normalize: True
+  beta: 1
+  gama: 1
 
-# 79.71 ± 1.26   #(GCN_Jump with dir_norm)---Qin
+# 79.71 ± 1.26  # ScaleNet:79.95 +- 1.4
 chameleon:
   lr: 0.005
   hidden_dim: 128
@@ -18,6 +20,8 @@ chameleon:
   patience: 400
   conv_type: "dir-gcn"
   alpha: 1
+  beta: 1
+  gama: 1
   normalize: True
 
 # 64.08 ± 0.26

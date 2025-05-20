@@ -12,7 +12,7 @@ from torch_geometric.nn import (
 )
 
 from src.datasets.data_utils import get_norm_adj
-
+from argparse import Namespace
 
 def get_conv(conv_type, input_dim, output_dim, alpha):
     if conv_type == "gcn":
@@ -31,9 +31,124 @@ def get_conv(conv_type, input_dim, output_dim, alpha):
         raise ValueError(f"Convolution type {conv_type} not supported")
 
 
+def get_conv_mix(input_dim, output_dim, args):
+    return DirConv_Mix(input_dim, output_dim, args)
+
+
+class DirConv_Mix(torch.nn.Module):
+    def __init__(self, input_dim, output_dim, args):
+        super().__init__()
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.coef = args.coef_agg
+        self.norm_list = []
+        self.conv_type = args.conv_type
+        self.inci_norm = args.inci_norm
+
+        self.alpha = nn.Parameter(torch.ones(1) * args.alpha, requires_grad=False)
+        self.beta = nn.Parameter(torch.ones(1) * args.beta, requires_grad=False)
+        self.gama = nn.Parameter(torch.ones(1) * args.gama, requires_grad=False)
+
+        if args.conv_type == 'dir-gcn':
+            self.lin_src_to_dst = Linear(input_dim, output_dim)
+            self.lin_dst_to_src = Linear(input_dim, output_dim)
+            self.adj_norm, self.adj_t_norm = None, None
+
+            self.linx = nn.ModuleList([Linear(input_dim, output_dim) for i in range(4)])
+            self.adj_norm_in_out, self.adj_norm_out_in, self.adj_norm_in_in, self.adj_norm_out_out = None, None, None, None
+        elif args.conv_type == 'dir-sage':
+            self.lin_src_to_dst = SAGEConv(input_dim, output_dim, root_weight=True)
+            self.lin_dst_to_src = SAGEConv(input_dim, output_dim, root_weight=True)
+
+            self.linx = nn.ModuleList([SAGEConv(input_dim, output_dim, root_weight=True) for i in range(4)])
+            self.edge_in_out, self.edge_out_in, self.edge_in_in, self.edge_out_out = None, None, None, None
+        elif args.conv_type == 'dir-gat':
+            heads = 1
+            self.lin_src_to_dst = GATConv(input_dim, output_dim * heads, heads=heads, add_self_loops=False)
+            self.lin_dst_to_src = GATConv(input_dim, output_dim * heads, heads=heads, add_self_loops=False)
+
+            self.linx = nn.ModuleList([GATConv(input_dim, output_dim * heads, heads=heads) for i in range(4)])
+            self.edge_in_out, self.edge_out_in, self.edge_in_in, self.edge_out_out = None, None, None, None
+        else:
+            raise NotImplementedError
+
+    def forward(self, x, edge_index):
+        if self.conv_type == 'dir-gcn':
+            if self.adj_norm is None:
+                row, col = edge_index
+                num_nodes = x.shape[0]
+
+                adj = SparseTensor(row=row, col=col, sparse_sizes=(num_nodes, num_nodes))
+                self.adj_norm = get_norm_adj(adj, norm="dir")
+
+                adj_t = SparseTensor(row=col, col=row, sparse_sizes=(num_nodes, num_nodes))
+                self.adj_t_norm = get_norm_adj(adj_t, norm="dir")
+            if self.adj_norm_in_out is None:
+                self.adj_norm_in_out = get_norm_adj(adj @ adj_t, norm=self.inci_norm)
+                self.adj_norm_out_in = get_norm_adj(adj_t @ adj, norm=self.inci_norm)
+                self.adj_norm_in_in = get_norm_adj(adj @ adj, norm=self.inci_norm)
+                self.adj_norm_out_out = get_norm_adj(adj_t @ adj_t, norm=self.inci_norm)
+
+                self.norm_list = [self.adj_norm_in_out, self.adj_norm_out_in, self.adj_norm_in_in, self.adj_norm_out_out]
+
+            out1 = self.alpha * self.lin_src_to_dst(self.adj_norm @ x) + (1 - self.alpha) * self.lin_dst_to_src(self.adj_t_norm @ x)
+            if not (self.beta == -1 and self.gama == -1):
+                out2 = aggregate(x, self.beta, self.linx[0], self.norm_list[0], self.linx[1], self.norm_list[1], self.coef)
+                out3 = aggregate(x, self.gama, self.linx[2], self.norm_list[2], self.linx[3], self.norm_list[3], self.coef)
+            else:
+                out2 = torch.zeros_like(out1)
+                out3 = torch.zeros_like(out1)
+        elif self.conv_type in ['dir-gat', 'dir-sage']:
+            edge_index_t = torch.stack([edge_index[1], edge_index[0]], dim=0)
+            if self.edge_in_in is None:
+                self.edge_in_out, self.edge_out_in, self.edge_in_in, self.edge_out_out = get_higher_edge_index(edge_index, num_nodes)
+
+            out1 = aggregate_index(x, self.alpha, self.lin_src_to_dst, edge_index, self.lin_dst_to_src, edge_index_t, self.Intersect_alpha, self.Union_alpha)
+            if not (self.beta == -1 and self.gama == -1):
+                if self.beta != -1:
+                    out2 = aggregate_index(x, self.beta, self.linx[0], self.edge_in_out, self.linx[1], self.edge_out_in, self.Intersect_beta, self.Union_beta)
+                else:
+                    out2 = torch.zeros_like(out1)
+                if self.gama != -1:
+                    out3 = aggregate_index(x, self.gama, self.linx[2], self.edge_in_in, self.linx[3], self.edge_out_out, self.Intersect_gama, self.Union_gama)
+                else:
+                    out3 = torch.zeros_like(out1)
+
+        return out1+out2+out3
+
+def aggregate(x, alpha, lin0, adj0, lin1, adj1, coef=1):
+    out = coef*(alpha * lin0(adj0 @ x) + (1 - alpha) * lin1(adj1 @ x))
+    return out
+def aggregate_index(x, alpha, lin0, index0, lin1, index1, coef=1):
+    out = coef*(1 + alpha) * ((1 - alpha) * lin0(x, index0) + alpha * lin1(x, index1))
+    return out
+
+def edge_index_to_adj(edge_index, num_nodes):
+    row = edge_index[0]
+    col = edge_index[1]
+    adj = SparseTensor(row=row.contiguous(), col=col.contiguous(), sparse_sizes=(num_nodes, num_nodes))
+    return adj
+
+def get_index(adj_aat):
+    row, col = adj_aat.storage._row, adj_aat.storage._col
+    edge_index_aat = torch.stack([row, col], dim=0)
+    return edge_index_aat
+
+def get_higher_edge_index(edge_index, num_nodes, rm_gen_sLoop=0):
+    adj = edge_index_to_adj(edge_index, num_nodes)
+    adj_in_out = adj @ adj.t()
+    adj_out_in =  adj.t() @ adj
+
+    adj_aa = adj @ adj
+    adj_out_out = adj.t() @ adj.t()
+
+    return get_index(adj_in_out), get_index(adj_out_in), get_index(adj_aa), get_index(adj_out_out)
+
+
 class DirGCNConv(torch.nn.Module):
     def __init__(self, input_dim, output_dim, alpha):
-        super(DirGCNConv, self).__init__()
+        super().__init__()
 
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -54,9 +169,9 @@ class DirGCNConv(torch.nn.Module):
             adj_t = SparseTensor(row=col, col=row, sparse_sizes=(num_nodes, num_nodes))
             self.adj_t_norm = get_norm_adj(adj_t, norm="dir")
 
-        return self.alpha * self.lin_src_to_dst(self.adj_norm @ x) + (1 - self.alpha) * self.lin_dst_to_src(
-            self.adj_t_norm @ x
-        )
+        return self.alpha * self.lin_src_to_dst(self.adj_norm @ x) + (1 - self.alpha) * self.lin_dst_to_src(self.adj_t_norm @ x)
+
+
 
 
 class DirSageConv(torch.nn.Module):
@@ -97,6 +212,129 @@ class DirGATConv(torch.nn.Module):
             x, edge_index_t
         )
 
+class ScaleNet(torch.nn.Module):
+    '''
+    not done = May20
+    '''
+    def __init__(
+        self,
+            num_features: object,
+            num_classes: object,
+            hidden_dim: object,
+            num_layers: object = 2,
+            dropout: object = 0,
+            conv_type: object = "dir-gcn",
+            jumping_knowledge: object = False,
+            normalize: object = False,
+            alpha: object = 1 / 2,
+            learn_alpha: object = False,
+            args: Namespace = None
+    ) -> object:
+        super().__init__()
+
+        output_dim = hidden_dim if jumping_knowledge else num_classes
+        if args.beta== -1 and args.gama == -1:
+            if num_layers == 1:
+                self.convs = ModuleList([get_conv(conv_type, num_features, output_dim, args.alpha)])
+            else:
+                self.convs = ModuleList([get_conv(conv_type, num_features, hidden_dim, args.alpha)])
+                for _ in range(num_layers - 2):
+                    self.convs.append(get_conv(conv_type, hidden_dim, hidden_dim, args.alpha))
+                self.convs.append(get_conv(conv_type, hidden_dim, output_dim, args.alpha))
+        else:
+            if num_layers == 1:
+                self.convs = ModuleList([get_conv_mix(num_features, output_dim, args)])
+            else:
+                self.convs = ModuleList([get_conv_mix(num_features, hidden_dim, args)])
+                for _ in range(num_layers - 2):
+                    self.convs.append(get_conv_mix(hidden_dim, hidden_dim, args))
+                self.convs.append(get_conv_mix(hidden_dim, output_dim, args))
+
+        if jumping_knowledge is not None:
+            input_dim = hidden_dim * num_layers if jumping_knowledge == "cat" else hidden_dim
+            self.lin = Linear(input_dim, num_classes)
+            self.jump = JumpingKnowledge(mode=jumping_knowledge, channels=hidden_dim, num_layers=num_layers)
+
+        self.num_layers = num_layers
+        self.dropout = dropout
+        self.jumping_knowledge = jumping_knowledge
+        self.normalize = normalize
+
+    def forward(self, x, edge_index):
+        xs = []
+        for i, conv in enumerate(self.convs):
+            x = conv(x, edge_index)
+            if i != len(self.convs) - 1 or self.jumping_knowledge:
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
+                if self.normalize:
+                    x = F.normalize(x, p=2, dim=1)
+            xs += [x]
+
+        if self.jumping_knowledge is not None:
+            x = self.jump(xs)
+            x = self.lin(x)
+
+        return torch.nn.functional.log_softmax(x, dim=1)
+    
+    
+class ScaleLayer(torch.nn.Module):
+    '''
+    not done---May20
+    '''
+    def __init__(
+        self,
+        num_features,
+        num_classes,
+        hidden_dim,
+        num_layers=2,
+        dropout=0,
+        conv_type="dir-gcn",
+        jumping_knowledge=False,
+        normalize=False,
+        alpha=1 / 2,
+        learn_alpha=False,
+        args: Namespace = None
+    ):
+        super().__init__()
+
+        self.alpha = nn.Parameter(torch.ones(1) * alpha, requires_grad=learn_alpha)
+        output_dim = hidden_dim if jumping_knowledge else num_classes
+        if num_layers == 1:
+            self.convs = ModuleList([get_conv(conv_type, num_features, output_dim, self.alpha)])
+        else:
+            self.convs = ModuleList([get_conv(conv_type, num_features, hidden_dim, self.alpha)])
+            for _ in range(num_layers - 2):
+                self.convs.append(get_conv(conv_type, hidden_dim, hidden_dim, self.alpha))
+            self.convs.append(get_conv(conv_type, hidden_dim, output_dim, self.alpha))
+
+        if jumping_knowledge is not None:
+            input_dim = hidden_dim * num_layers if jumping_knowledge == "cat" else hidden_dim
+            self.lin = Linear(input_dim, num_classes)
+            self.jump = JumpingKnowledge(mode=jumping_knowledge, channels=hidden_dim, num_layers=num_layers)
+
+        self.num_layers = num_layers
+        self.dropout = dropout
+        self.jumping_knowledge = jumping_knowledge
+        self.normalize = normalize
+
+    def forward(self, x, edge_index):
+        xs = []
+        for i, conv in enumerate(self.convs):
+            x = conv(x, edge_index)
+            if i != len(self.convs) - 1 or self.jumping_knowledge:
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
+                if self.normalize:
+                    x = F.normalize(x, p=2, dim=1)
+            xs += [x]
+
+        if self.jumping_knowledge is not None:
+            x = self.jump(xs)
+            x = self.lin(x)
+
+        return torch.nn.functional.log_softmax(x, dim=1)
+
 
 class GNN(torch.nn.Module):
     def __init__(
@@ -112,7 +350,7 @@ class GNN(torch.nn.Module):
         alpha=1 / 2,
         learn_alpha=False,
     ):
-        super(GNN, self).__init__()
+        super().__init__()
 
         self.alpha = nn.Parameter(torch.ones(1) * alpha, requires_grad=learn_alpha)
         output_dim = hidden_dim if jumping_knowledge else num_classes
@@ -198,15 +436,44 @@ class LightingFullBatchModelWrapper(pl.LightningModule):
 
 
 def get_model(args):
-    return GNN(
-        num_features=args.num_features,
-        hidden_dim=args.hidden_dim,
-        num_layers=args.num_layers,
-        num_classes=args.num_classes,
-        dropout=args.dropout,
-        conv_type=args.conv_type,
-        jumping_knowledge=args.jk,
-        normalize=args.normalize,
-        alpha=args.alpha,
-        learn_alpha=args.learn_alpha,
-    )
+    if args.model == 'gnn':
+        return GNN(
+            num_features=args.num_features,
+            hidden_dim=args.hidden_dim,
+            num_layers=args.num_layers,
+            num_classes=args.num_classes,
+            dropout=args.dropout,
+            conv_type=args.conv_type,
+            jumping_knowledge=args.jk,
+            normalize=args.normalize,
+            alpha=args.alpha,
+            learn_alpha=args.learn_alpha,
+        )
+    elif args.model == 'scalenet':
+        return ScaleNet(
+            num_features=args.num_features,
+            hidden_dim=args.hidden_dim,
+            num_layers=args.num_layers,
+            num_classes=args.num_classes,
+            dropout=args.dropout,
+            conv_type=args.conv_type,
+            jumping_knowledge=args.jk,
+            normalize=args.normalize,
+            alpha=args.alpha,
+            learn_alpha=args.learn_alpha,
+            args=args,
+        )
+    elif args.model == 'scalelayer':
+        return ScaleLayer(
+            num_features=args.num_features,
+            hidden_dim=args.hidden_dim,
+            num_layers=args.num_layers,
+            num_classes=args.num_classes,
+            dropout=args.dropout,
+            conv_type=args.conv_type,
+            jumping_knowledge=args.jk,
+            normalize=args.normalize,
+            alpha=args.alpha,
+            learn_alpha=args.learn_alpha, 
+            args=args,
+        )
