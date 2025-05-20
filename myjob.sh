@@ -10,7 +10,7 @@
 ## Job name
 #SBATCH -J gpu-coraml
 ## Run time: "hours:minutes:seconds", "days-hours"
-#SBATCH --time=1-20
+#SBATCH --time=10
 ## Memory limit (in megabytes). Total --mem or amount per cpu --mem-per-cpu
 #SBATCH --mem-per-cpu=80240
 ## GPU requirements
@@ -59,7 +59,7 @@ for layer in $layer_values; do    # --IsDirectedData --to_undirected
   logfile="outforlayer${layer}.log"  # Adjust log file name with layer number
     exec > $logfile 2>&1  # Redirect stdout and stderr to log file
   for net in $net_values; do
-    nohup python3 rum.py  --model=$net  --use_best_hyperparams=1  --dataset="$Didataset"  --layer=$layer  \
+    nohup python3 run.py  --model=$net  --use_best_hyperparams=1  --dataset="$Didataset"  --layer=$layer  \
       > ${Direct_dataset_filename}_${timestamp}${net}_layer${layer}GPU.log &
     pid=$!
 
