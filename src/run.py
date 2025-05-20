@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import uuid
+import gc
 
 import torch
 from torch.utils.data import DataLoader
@@ -8,14 +9,16 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelSummary, ModelCheckpoint
 
-from src.utils.utils import use_best_hyperparams, get_available_accelerator
+from src.utils.utils import use_best_hyperparams, get_available_accelerator, seed_everything
 from src.datasets.data_loading import get_dataset, get_dataset_split
 from src.datasets.dataset import FullBatchGraphDataset
 from src.model import get_model, LightingFullBatchModelWrapper
 from src.utils.arguments import args
+import time
 
 
 def run(args):
+    # seed_everything(args.seed)      # Qin
     torch.manual_seed(0)
 
     # Get dataset and dataloader
@@ -26,7 +29,8 @@ def run(args):
         self_loops=args.self_loops,
         transpose=args.transpose,
     )
-    data = dataset._data
+    data = getattr(dataset, '_data', dataset.data)
+    # data = dataset._data
     data_loader = DataLoader(FullBatchGraphDataset(data), batch_size=1, collate_fn=lambda batch: batch[0])
 
     val_accs, test_accs = [], []
@@ -81,9 +85,22 @@ def run(args):
         test_accs.append(test_acc)
         val_accs.append(val_acc)
 
+        del model
+        del lit_model
+        del trainer
+        del early_stopping_callback
+        del model_summary_callback
+        del model_checkpoint_callback
+        torch.cuda.empty_cache()
+        gc.collect()
+
     print(f"Test Acc: {np.mean(test_accs)} +- {np.std(test_accs)}")
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     args = use_best_hyperparams(args, args.dataset) if args.use_best_hyperparams else args
+    print(args)
     run(args)
+    end_time = time.time()
+    print('Used time: ', end_time - start_time)
