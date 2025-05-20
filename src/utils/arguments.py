@@ -41,6 +41,7 @@ parser.add_argument("--gpu_idx", type=int, help="Indexes of gpu to run program o
 parser.add_argument("--num_workers", type=int, help="Num of workers for the dataloader", default=0)
 parser.add_argument("--log", type=str, help="Log Level", default="INFO", choices=["DEBUG", "INFO", "WARNING"])
 parser.add_argument("--profiler", action="store_true")
+parser.add_argument('--seed', type=int, default=0, help='random seed')
 
 args = parser.parse_args()
 logger = logging.getLogger(__name__)

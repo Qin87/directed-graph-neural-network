@@ -19,7 +19,7 @@ import time
 
 def run(args):
     # seed_everything(args.seed)      # Qin
-    torch.manual_seed(0)
+    torch.manual_seed(args.seed)
 
     # Get dataset and dataloader
     dataset, evaluator = get_dataset(
