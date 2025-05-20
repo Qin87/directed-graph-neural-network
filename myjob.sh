@@ -48,18 +48,19 @@ echo "2Executing job commands, current working directory is $(pwd)"
 echo "Output file has been generated, please check $RESULTS_DIR/test.output"
 
 Direct_dataset=('ogbn-arxiv'   'directed-roman-empire'   'snap-patents'   'arxiv-year'    )  # Update your Direct_dataset value
-Direct_dataset_filename=$(echo $Direct_dataset | sed 's/\//_/g')
+
 generate_timestamp() {
   date +"D%dH%H_%M%S"
 }
 timestamp=$(generate_timestamp)
 
 for Didataset in "${Direct_dataset[@]}"; do
+  Direct_dataset_filename=$(echo $Didataset | sed 's/\//_/g')
 for layer in $layer_values; do    # --IsDirectedData --to_undirected
-  logfile="outforlayer${layer}.log"  # Adjust log file name with layer number
+  logfile="${Didataset}outforlayer${layer}.log"  # Adjust log file name with layer number
     exec > $logfile 2>&1  # Redirect stdout and stderr to log file
   for net in $net_values; do
-    nohup python3 run.py  --model=$net  --use_best_hyperparams=1  --dataset="$Didataset"  --layer=$layer  \
+    nohup python3 -m src.run  --model=$net  --dataset="$Didataset"  \
       > ${Direct_dataset_filename}_${timestamp}${net}_layer${layer}GPU.log &
     pid=$!
 
