@@ -1,13 +1,3 @@
-# Dir-GNN: Graph Neural Networks for Directed Graphs 
-
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/edge-directionality-improves-learning-on/node-classification-on-squirrel)](https://paperswithcode.com/sota/node-classification-on-squirrel?p=edge-directionality-improves-learning-on)[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/edge-directionality-improves-learning-on/node-classification-on-chameleon)](https://paperswithcode.com/sota/node-classification-on-chameleon?p=edge-directionality-improves-learning-on)[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/edge-directionality-improves-learning-on/node-classification-on-arxiv-year)](https://paperswithcode.com/sota/node-classification-on-arxiv-year?p=edge-directionality-improves-learning-on)[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/edge-directionality-improves-learning-on/node-classification-on-snap-patents)](https://paperswithcode.com/sota/node-classification-on-snap-patents?p=edge-directionality-improves-learning-on)
-
-<!-- ![](figures/dirgnn_results.png) -->
-<p align="center">
-    <img src="figures/dirgnn_results.png" width="600">
-</p>
-
-Dir-GNN is a machine learning model that enables learning on *directed* graphs. This repository contains the official implementation of the paper ["Edge Directionality Improves Learning on Heterophilic Graphs"](https://arxiv.org/abs/2305.10498), where we introduce Dir-GNN and show that leveraging edge directionality leads to improved learning on heterophilic graphs.
 
 - [Dir-GNN: Edge Directionality Improves Learning on Heterophilic Graphs](#dir-gnn-edge-directionality-improves-learning-on-heterophilic-graphs)
   - [Overview](#overview)
@@ -28,14 +18,6 @@ Dir-GNN is a machine learning model that enables learning on *directed* graphs. 
     - [System Args](#system-args)
   - [Citation](#citation)
   - [Contact](#contact)
-
-## Overview
-
-Graph Neural Networks (GNNs) have become the de-facto standard tool for modeling relational data. However, while many real-world graphs are directed, the majority of today's GNN models discard this information altogether by simply making the graph undirected. The reasons for this are historical: 1) many early variants of spectral GNNs explicitly required undirected graphs, and 2) the first benchmarks on homophilic graphs did not find significant gain from using direction. 
-
-In our paper, we show that in heterophilic settings, treating the graph as directed increases the effective homophily of the graph, suggesting a potential gain from the correct use of directionality information. To this end, we introduce Directed Graph Neural Network (Dir-GNN), a novel general framework for deep learning on directed graphs. Dir-GNN can be used to extend any Message Passing Neural Network (MPNN) to account for edge directionality information by performing separate aggregations of the incoming and outgoing edges. 
-
-We prove that Dir-GNN matches the expressivity of the Directed Weisfeiler-Lehman test, exceeding that of conventional MPNNs. In extensive experiments, we validate that while our framework leaves performance unchanged on homophilic datasets, it leads to large gains over base models such as GCN, GAT and GraphSage on heterophilic benchmarks, outperforming much more complex methods and achieving new state-of-the-art results.
 
 ## Getting Started
 
@@ -60,12 +42,6 @@ conda install pyg pytorch-sparse -c pyg
 pip install ogb==1.3.6
 pip install pytorch_lightning==2.0.2
 pip install gdown==4.7.1
-```
-
-Please ensure that the version of `pytorch-cuda` matches your CUDA version. If your system does not have a GPU, use the following command to install PyTorch:
-
-```bash
-conda install pytorch==2.0.1 -c pytorch
 ```
 
 For M1/M2/M3 Mac users, `pyg` (PyTorch Geometric) needs to be installed from source. Detailed instructions for this process can be found [here](https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html#installation-from-source).
@@ -191,17 +167,4 @@ The following command line arguments can be used with the code:
 
 
 
-## Citation
-
-```bibtex
-@misc{dirgnn_rossi_2023,
-    title={Edge Directionality Improves Learning on Heterophilic Graphs},
-    author={Emanuele Rossi and Bertrand Charpentier and Francesco Di Giovanni and Fabrizio Frasca and Stephan Günnemann and Michael Bronstein},
-    publisher={arXiv},
-    year={2023}
-}
-```
-
-## Contact
-If you have any questions, issues or feedback, feel free to reach out to Emanuele Rossi at `emanuele.rossi1909@gmail.com` or Bertrand Charpentier at `bertrand.henri.charpentier@gmail.com`.
 

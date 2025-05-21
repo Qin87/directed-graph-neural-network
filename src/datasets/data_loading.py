@@ -51,7 +51,7 @@ def get_dataset(name: str, root_dir: str, homophily=None, undirected=False, self
         # they are overwritten later for this dataset (see get_dataset_split function below)
         dataset._data.train_mask, dataset._data.val_mask, dataset._data.test_mask = 0, 0, 0
         # Create directory for this dataset
-        os.makedirs(os.path.join(path, name.replace("-", "_"), "raw"), exist_ok=True)
+        # os.makedirs(os.path.join(path, name.replace("-", "_"), "raw"), exist_ok=True)
     elif name == "syn-dir":
         dataset = get_syn_dataset(path)
 
