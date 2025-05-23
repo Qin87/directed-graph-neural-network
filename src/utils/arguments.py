@@ -4,7 +4,7 @@ import logging
 parser = argparse.ArgumentParser("Directed Graph Neural Network")
 
 ### Dataset Args
-parser.add_argument("--dataset", type=str, help="Name of dataset", default="ogbn-arxiv")
+parser.add_argument("--dataset", type=str, help="Name of dataset", default="arxiv-year")
 parser.add_argument("--dataset_directory", type=str, help="Directory to save datasets", default="dataset")
 parser.add_argument("--checkpoint_directory", type=str, help="Directory to save checkpoints", default="checkpoint")
 
@@ -14,9 +14,9 @@ parser.add_argument("--self_loops", action="store_true", help="Whether to add se
 parser.add_argument("--transpose", action="store_true", help="Whether to use transpose of the graph")
 
 ### Model Args
-parser.add_argument("--model", type=str, help="Model type: gnn, scalenet, scalelayer", default="scalenet")
+parser.add_argument("--model", type=str, help="Model type: gnn, scalenet, scalelayer", default="scalelayer")
 parser.add_argument("--hidden_dim", type=int, help="Hidden dimension of model", default=64)
-parser.add_argument("--num_layers", type=int, help="Number of GNN layers", default=5)
+parser.add_argument("--num_layers", type=int, help="Number of GNN layers", default=4)
 parser.add_argument("--dropout", type=float, help="Feature dropout", default=0.0)
 parser.add_argument("--alpha", type=float, help="Direction convex combination params", default=0.5)
 parser.add_argument("--beta", type=float, help="Direction convex combination params", default=-1)

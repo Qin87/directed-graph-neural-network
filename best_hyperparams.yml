@@ -28,12 +28,12 @@ chameleon:
 arxiv-year:
   lr: 0.005
   hidden_dim: 256
-  num_layers: 6
+#  num_layers: 6
   jk: "cat"
   patience: 200
   conv_type: "dir-gcn"
   beta: 0.5
-#  gama: 0.5
+  gama: 0.5
 
 # 73.95 ± 0.05
 snap-patents:
@@ -56,7 +56,7 @@ directed-roman-empire:
   jk: "cat"
   dropout: 0.2
   patience: 200
-  conv_type: "dir-sage"
+#  conv_type: "dir-sage"
   beta: 0.5
 #  gama: 0.5
 
