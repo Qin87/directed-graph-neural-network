@@ -429,7 +429,6 @@ class ScaleLayer(torch.nn.Module):
     ):
         super().__init__()
 
-        # self.alpha = nn.Parameter(torch.ones(1) * alpha, requires_grad=learn_alpha)
         output_dim = hidden_dim if jumping_knowledge else num_classes
         if num_layers == 1:
             self.convs = ModuleList([DirConv_MixLayer(num_features, output_dim, args)])
