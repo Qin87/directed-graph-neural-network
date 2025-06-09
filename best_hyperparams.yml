@@ -1,5 +1,6 @@
 # 74.71 ± 1.42   # ScaleNet: 74.94 +- 2.13
 squirrel:
+  model: gnn
   lr: 0.01
   hidden_dim: 128
   num_layers: 4
@@ -13,6 +14,7 @@ squirrel:
 
 # 79.71 ± 1.26  # ScaleNet:79.95 +- 1.4
 chameleon:
+  model: gnn
   lr: 0.005
   hidden_dim: 128
   num_layers: 5

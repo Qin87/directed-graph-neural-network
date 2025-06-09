@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import socket
 import uuid
 import gc
 
@@ -16,9 +17,16 @@ from src.model import get_model, LightingFullBatchModelWrapper
 from src.utils.arguments import args
 import time
 
+original_load = torch.load
+
+def custom_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return original_load(*args, **kwargs)
+
+torch.load = custom_load
+
 
 def run(args):
-    # seed_everything(args.seed)      # Qin
     torch.manual_seed(args.seed)
 
     # Get dataset and dataloader
@@ -65,6 +73,7 @@ def run(args):
         # Setup Pytorch Lighting Trainer
         trainer = pl.Trainer(
             log_every_n_steps=1,
+            enable_progress_bar=False,
             max_epochs=args.num_epochs,
             callbacks=[
                 early_stopping_callback,
@@ -99,8 +108,11 @@ def run(args):
 
 if __name__ == "__main__":
     start_time = time.time()
+
     args = use_best_hyperparams(args, args.dataset) if args.use_best_hyperparams else args
     print(args)
+    print(f"Machine ID: {socket.gethostname()}-{':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0, 8 * 6, 8)][::-1])}")
+
     run(args)
     end_time = time.time()
     print('Used time: ', end_time - start_time)

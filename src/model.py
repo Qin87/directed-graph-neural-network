@@ -411,7 +411,7 @@ class ScaleNet(torch.nn.Module):
     
 class ScaleLayer(torch.nn.Module):
     '''
-    not done---May20
+    done---May22
     '''
     def __init__(
         self,
@@ -613,3 +613,5 @@ def get_model(args):
             learn_alpha=args.learn_alpha, 
             args=args,
         )
+    else:
+        return None
